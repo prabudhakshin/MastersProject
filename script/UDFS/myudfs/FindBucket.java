@@ -21,7 +21,7 @@ public class FindBucket extends EvalFunc<String>
 
       long TOTBUCKETS = 200;
       int queryType = (Integer)input.get(0);
-      String registeredDomain = (String)input.get(1);
+      String revRegisteredDomain = (String)input.get(1);
       String inputSplitPath = (String)input.get(2);
 
       // Parse the date of type yyyymmdd from the input split path
@@ -42,12 +42,8 @@ public class FindBucket extends EvalFunc<String>
       }
 
       // Identify TLD bucket
-      int len = registeredDomain.length();
-      if (registeredDomain.charAt(len-1) == '.') {
-        registeredDomain = registeredDomain.substring(0, len-1);
-      }
-      String[] domain_parts = registeredDomain.split("\\.");
-      String tld = domain_parts[(domain_parts.length)-1];
+      String[] domain_parts = revRegisteredDomain.split("\\.");
+      String tld = domain_parts[0];
 
       String topLevelDomain = "";
       if (tld.equals("com") || tld.equals("COM")) /*44% */ {
@@ -108,7 +104,7 @@ public class FindBucket extends EvalFunc<String>
       if (numbuckets == 0)
         numbuckets = 1;
 
-      int signedHashCode = registeredDomain.hashCode();
+      int signedHashCode = revRegisteredDomain.hashCode();
       long unsignedHashCode = signedHashCode & 0x00000000ffffffffL;
       long bucket_id = unsignedHashCode % numbuckets;
       String domainBucketNumber = String.valueOf(bucket_id);
