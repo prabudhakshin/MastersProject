@@ -112,7 +112,9 @@ def findFiles(domainList):
     if (regDomain[-1] == '.'):
       regDomain = regDomain[:-1]
 
-    tld = regDomain.split('.')[-1]
+    revRegDomain = regDomain[::-1]
+
+    tld = revRegDomain.split('.')[0]
     tld = tld.upper()
 
     if (tld != "COM" and
@@ -120,8 +122,8 @@ def findFiles(domainList):
         tld != "ARPA"):
         tld = "OTHR"
 
-    domainHashCode = getJavahash(regDomain)
-    print regDomain, domainHashCode
+    domainHashCode = getJavahash(revRegDomain)
+    print revRegDomain, domainHashCode
 
     qtype_tld_list = []
     for qtype in queryTypes:
@@ -143,7 +145,6 @@ def main():
   parseArgs(sys.argv[1:])
   queryTypes = queryTypes.strip().split(",")
   dateRange = dateRange.strip().split(",")
-
 
   domainFileDesc = open(domainFileName, "r")
   domainList = []
