@@ -41,6 +41,7 @@ def get_regex(domain_list):
     if len(tokens) < 2:
       print 'WARNING: %s' % line
       continue
+    tokens.reverse()
     if not tokens[0] in data:
       data[tokens[0]] = []
     buf = StringIO.StringIO()
@@ -56,7 +57,7 @@ def get_regex(domain_list):
     buf.write('(?:%s\\\\.(?:%s))|' % (key, buf2.getvalue()[:-1]))
 
   print '^%s$' % buf.getvalue()[:-1]
-  return '^(%s)\\\\.$' % buf.getvalue()[:-1]
+  return '^%s$' % buf.getvalue()[:-1]
 
 def write_pig(fileinputstring, regexstring, outputstring):
     template_file = 'pig/template_raw.pig'
@@ -112,7 +113,7 @@ def findFiles(domainList):
     if (regDomain[-1] == '.'):
       regDomain = regDomain[:-1]
 
-    revRegDomain = regDomain[::-1]
+    revRegDomain = ".".join(regDomain.split(".")[::-1])
 
     tld = revRegDomain.split('.')[0]
     tld = tld.upper()
@@ -148,6 +149,7 @@ def main():
 
   domainFileDesc = open(domainFileName, "r")
   domainList = []
+  regDomainList = []
 
   # read domains form the input file
   for domain in domainFileDesc:
@@ -157,12 +159,13 @@ def main():
     regdomain = regdom.get_registered_domain(domain)
     if not regdomain is None:
       domainList.append(domain)
+      regDomainList.append(regdomain)
     else:
       print 'Domain %s does not have valid registered domain, skipping.' % domain
 
   filesToSearch = findFiles(domainList)
   fileinputstring = "/user/pdhakshi/SIE_DATA/BY_MULTIPARAMS_1day/{%s}.gz/*" % (",".join(filesToSearch))
-  regexstring = get_regex(domainList)
+  regexstring = get_regex(regDomainList)
 
   for aFile in filesToSearch:
     print aFile
