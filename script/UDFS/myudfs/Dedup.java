@@ -22,22 +22,25 @@ public class Dedup extends EvalFunc<DataBag> {
     resulttuple.set(1, (String)srctuple.get(1));  // src_ip
     resulttuple.set(2, (String)srctuple.get(2));  // dst_ip
     resulttuple.set(3, (String)srctuple.get(3));  // domain 
+    resulttuple.set(4, (String)srctuple.get(4));  // rev_domain 
+    resulttuple.set(5, (Integer)srctuple.get(5)); // qtype
     // set the ttl to be 0 for now. It will be later reset if there is a valid ttl.
-    resulttuple.set(4, "0");  //ttl
+    resulttuple.set(6, "0");  //ttl
 
     DataBag resulttupleanswerbag = new DefaultDataBag();
-    resulttuple.set(5, resulttupleanswerbag);
+    resulttuple.set(7, resulttupleanswerbag);
+    resulttuple.set(8, (String)srctuple.get(7)); // inputpath
 
     try {
-      addAddresstoTuple(resulttuple, (DataBag)srctuple.get(4));
+      addAddresstoTuple(resulttuple, (DataBag)srctuple.get(6));
     } catch(ExecException e) {
-      System.out.println("Error while retrving answer bag (4) from the input tuple: ");
+      System.out.println("Error while retrving answer bag (6) from the input tuple: ");
       e.printStackTrace();
     }
   }
 
   private void addAddresstoTuple (Tuple resulttuple, DataBag answerbag) throws Exception {
-    DataBag resulttupleanswerbag = (DataBag)resulttuple.get(5);
+    DataBag resulttupleanswerbag = (DataBag)resulttuple.get(7);
     Tuple answertuple = null;
     for(Tuple answer : (DataBag)answerbag) {
       answertuple = tuplefactory.newTuple(1);
@@ -52,7 +55,7 @@ public class Dedup extends EvalFunc<DataBag> {
 
       //set the ttl field of the resulttuple
       try {
-        resulttuple.set(4, (String) answer.get(1));
+        resulttuple.set(6, (String) answer.get(1));
       } catch(ExecException e) {
         System.out.println("Error while retrieving field 1 (ttl) from an answer");
         e.printStackTrace();
@@ -65,7 +68,7 @@ public class Dedup extends EvalFunc<DataBag> {
     DataBag outputbag = new DefaultDataBag();
     Tuple prevtuple = null;
     /*Fields of tuple: ts, src_ip, dst_ip, domain, ttl, answer*/
-    Tuple resulttuple = tuplefactory.newTuple(6);
+    Tuple resulttuple = tuplefactory.newTuple(9);
     DataBag inputbag = (DataBag)input.get(0);
     if (inputbag.size() == 0) {
       System.out.println("Bag does not have any tuples. Returning null");
@@ -86,13 +89,13 @@ public class Dedup extends EvalFunc<DataBag> {
       try{
         Tuple curtuple = itertuple.next();
         if (((Integer)curtuple.get(0) - (Integer)prevtuple.get(0)) <= 5) {
-          DataBag answerbag = (DataBag)curtuple.get(4);
+          DataBag answerbag = (DataBag)curtuple.get(6);
           addAddresstoTuple(resulttuple, answerbag);
           prevtuple = curtuple;
         }
         else {
           outputbag.add(resulttuple);
-          resulttuple = tuplefactory.newTuple(6);
+          resulttuple = tuplefactory.newTuple(9);
           prevtuple = curtuple;
           copyTupleFields(resulttuple /*dest*/, prevtuple /*src*/);
         }
