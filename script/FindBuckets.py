@@ -73,12 +73,24 @@ def write_pig(fileinputstring, regexstring, outputstring):
                       'output': outputstring,
                       'regex': regexstring}
 
+def parseDateField(parser, dateRange):
+  datePeriods = dateRange.split(",")
+  days = []
+  for period in datePeriods:
+    rangevalue = period.split("-")
+    if len(rangevalue) == 1:
+      days.append(rangevalue[0])
+    elif len(rangevalue) == 2:
+      days = days + map (str, range(int(rangevalue[0]), int(rangevalue[1])+1))
+    else:
+      printHelpExit(parser, "Date period has more than one hiphen (-)")
+  return days
+
 def parseArgs(argslist):
-  global domainFileName, queryTypes, dateRange
   usagestring = "Usage: %prog [options] domainlistfile"
   optparser = optparse.OptionParser(usage=usagestring)
-  optparser.add_option("-p", "--period", dest="daterange", help="Range of days of the form '20120201,20120203,...'", type=str, default="20120405");
-  optparser.add_option("-q", "--querytype", dest="querytype", help="DNS querytypes to search for (like 'A,PTR,...')", type=str, default="A");
+  optparser.add_option("-p", "--period", dest="daterange", help="Range of days of the form '20120201,20120203,...' or 20120201-20120227 or 20120201-20120227,20120301-20120330", type=str, default="20120405");
+  optparser.add_option("-q", "--querytype", dest="querytype", help="DNS querytypes (A, PTR, AAAA, OTHR) to search. * to include all query types", type=str, default="A");
 
   (options, args) = optparser.parse_args(argslist)
 
@@ -87,7 +99,23 @@ def parseArgs(argslist):
 
   domainFileName = args[0]
   dateRange = options.daterange
-  queryTypes = options.querytype
+  dateRange = parseDateField(optparser, dateRange)
+  qtypefield = options.querytype
+
+  acceptedTypes = ["A", "PTR", "AAAA", "OTHR"]
+  queryTypes = []
+  if qtypefield == "*":
+    queryTypes = ["A", "PTR", "AAAA", "OTHR"]
+  else:
+    types = qtypefield.split(",")
+    for atype in types:
+      atype = atype.strip().upper()
+      if atype.upper() not in acceptedTypes:
+        printHelpExit(optparser, "Invalid query type")
+      else:
+        queryTypes.append(atype.upper())
+
+  return domainFileName, dateRange, queryTypes
 
 def getJavahash(s):
   h = 0
@@ -105,8 +133,8 @@ def getBucketNumber(percent_dist_for_group, domainHashCode):
   print 'numbuckets: ', bucketCount
   return str(domainHashCode % bucketCount)
 
-def findFiles(domainList):
-  result = set()
+def findFiles(domainList, queryTypes, dateRange):
+  result = []
   for domain in domainList:
     regDomain = regdom.get_registered_domain(domain)
 
@@ -136,17 +164,14 @@ def findFiles(domainList):
     temp_result = [aDay + "_" + qtype_tld for aDay in dateRange for qtype_tld in qtype_tld_list]
 
     for aResult in temp_result:
-      result.add(aResult)
+      if aResult not in result:
+        result.append(aResult)
 
-  return list(result)
+  return result
 
 def main():
 
-  global domainFileName, queryTypes, dateRange
-  parseArgs(sys.argv[1:])
-  queryTypes = queryTypes.strip().split(",")
-  dateRange = dateRange.strip().split(",")
-
+  domainFileName, dateRange, queryTypes = parseArgs(sys.argv[1:])
   domainFileDesc = open(domainFileName, "r")
   domainList = []
   regDomainList = []
@@ -163,7 +188,7 @@ def main():
     else:
       print 'Domain %s does not have valid registered domain, skipping.' % domain
 
-  filesToSearch = findFiles(domainList)
+  filesToSearch = findFiles(domainList, queryTypes, dateRange)
   fileinputstring = "/user/pdhakshi/SIE_DATA/BY_MULTIPARAMS_1day/{%s}.gz/*" % (",".join(filesToSearch))
   regexstring = get_regex(regDomainList)
 
