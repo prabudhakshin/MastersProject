@@ -4,6 +4,7 @@ import sys
 import optparse
 import StringIO
 import registered_domain as regdom
+from collections import defaultdict as defdic
 
 domainFileName = ""
 dateRange = ""
@@ -59,8 +60,8 @@ def get_regex(domain_list):
   print '^%s$' % buf.getvalue()[:-1]
   return '^%s$' % buf.getvalue()[:-1]
 
-def write_pig(fileinputstring, regexstring, outputstring):
-    template_file = 'pig/template_raw.pig'
+def write_pig(inputstring, outputstring, qtypestring, regexstring):
+    template_file = 'pig/template_smart.pig'
     buf = StringIO.StringIO()
     fin = open(template_file, 'r')    
     for line in fin:
@@ -69,9 +70,10 @@ def write_pig(fileinputstring, regexstring, outputstring):
     fin.close()
     template = buf.getvalue().strip()
 
-    print template % {'input': fileinputstring,
-                      'output': outputstring,
-                      'regex': regexstring}
+    print template % {'input' : inputstring,
+                      'qtypes': qtypestring,
+                      'regex' : regexstring,
+                      'output': outputstring}
 
 def parseDateField(parser, dateRange):
   datePeriods = dateRange.split(",")
@@ -90,7 +92,7 @@ def parseArgs(argslist):
   usagestring = "Usage: %prog [options] domainlistfile"
   optparser = optparse.OptionParser(usage=usagestring)
   optparser.add_option("-p", "--period", dest="daterange", help="Range of days of the form '20120201,20120203,...' or 20120201-20120227 or 20120201-20120227,20120301-20120330", type=str, default="20120405");
-  optparser.add_option("-q", "--querytype", dest="querytype", help="DNS querytypes (A, PTR, AAAA, OTHR) to search. * to include all query types", type=str, default="A");
+  optparser.add_option("-q", "--querytype", dest="querytype", help="Comma separated DNS querytypes (1,12,28...) to search. * to include all query types", type=str, default="1");
 
   (options, args) = optparser.parse_args(argslist)
 
@@ -102,20 +104,25 @@ def parseArgs(argslist):
   dateRange = parseDateField(optparser, dateRange)
   qtypefield = options.querytype
 
-  acceptedTypes = ["A", "PTR", "AAAA", "OTHR"]
+  qtypeCodeToNameMap = {"1"  : "A",
+                        "12" : "PTR",
+                        "28" : "AAAA"}
+                        
   queryTypes = []
+  queryTypeCode = []
   if qtypefield == "*":
     queryTypes = ["A", "PTR", "AAAA", "OTHR"]
+    queryTypeCode = ["0"]
   else:
-    types = qtypefield.split(",")
-    for atype in types:
-      atype = atype.strip().upper()
-      if atype.upper() not in acceptedTypes:
-        printHelpExit(optparser, "Invalid query type")
+    queryTypeCode = qtypefield.split(",")
+    for atype in queryTypeCode:
+      if atype in qtypeCodeToNameMap:
+        queryTypes.append(qtypeCodeToNameMap[atype])
       else:
-        queryTypes.append(atype.upper())
+        if "OTHR" not in queryTypes:
+          queryTypes.append("OTHR")
 
-  return domainFileName, dateRange, queryTypes
+  return domainFileName, dateRange, queryTypes, queryTypeCode
 
 def getJavahash(s):
   h = 0
@@ -169,9 +176,34 @@ def findFiles(domainList, queryTypes, dateRange):
 
   return result
 
+def makeInputString(filesToSearch):
+  daytofilesmap = defdic(list)
+  for afile in filesToSearch:
+    yearmonthday = afile[0:8]
+    daytofilesmap[yearmonthday].append(afile)
+
+  basepath = "/user/pdhakshi/SIE_DATA/BY_MULTIPARAMS/"
+  outputfilelist = []
+  for (aday, filelist) in daytofilesmap.items():
+    outputfilelist.append("%s/{%s}.gz/*" % (aday, ",".join(filelist)))
+
+  return basepath + "{" + ",".join(outputfilelist) + "}"
+
+
+def makequerystring(queryTypes):
+  if len(queryTypes) == 1 and queryTypes[0]== "0":
+    #wildcard case; Need to include all query types
+    querystring = "qtype != 0"
+    return querystring
+  else:
+    temp = []
+    for atype in queryTypes:
+      temp.append("(qtype == " + atype + ")")
+    return " OR ".join(temp)
+
 def main():
 
-  domainFileName, dateRange, queryTypes = parseArgs(sys.argv[1:])
+  domainFileName, dateRange, queryTypes, queryTypeCodes = parseArgs(sys.argv[1:])
   domainFileDesc = open(domainFileName, "r")
   domainList = []
   regDomainList = []
@@ -189,13 +221,15 @@ def main():
       print 'Domain %s does not have valid registered domain, skipping.' % domain
 
   filesToSearch = findFiles(domainList, queryTypes, dateRange)
-  fileinputstring = "/user/pdhakshi/SIE_DATA/BY_MULTIPARAMS_1day/{%s}.gz/*" % (",".join(filesToSearch))
+  fileinputstring = makeInputString(filesToSearch)
+#  fileinputstring = "/user/pdhakshi/SIE_DATA/BY_MULTIPARAMS/{%s}.gz/*" % (",".join(filesToSearch))
   regexstring = get_regex(regDomainList)
 
   for aFile in filesToSearch:
     print aFile
 
-  write_pig(fileinputstring, regexstring, "/user/pdhakshi/output")
+  querystring = makequerystring (queryTypeCodes)
+  write_pig(fileinputstring, "/user/pdhakshi/output", querystring, regexstring)
 
 if __name__ == "__main__":
   main()

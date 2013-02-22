@@ -13,25 +13,40 @@ DEFINE ReverseDomain com.apitsill.pig.ReverseDomain();
 
 -- Load files (this loads all files in the folder).
 -- Specifying a folder recursively loads all files in it.
-rawcsv = LOAD '%(input)s' as (
+rawcsv = LOAD '%(input)s' as (line:chararray);
+
+-- Parse the CSVs using Chris's parser
+dnsrequests = FOREACH rawcsv
+    GENERATE FLATTEN(
+        org.chris.dnsproc.ParseDNSFast(line)
+    ) as (
   ts: int,
+  type: int,
   src_ip: chararray,
   dst_ip: chararray,
   domain: chararray,
-  rev_domain: chararray,
   qtype: int,
-  ttl: chararray,
-  answer: bag { t: tuple(a:chararray) },
-  filenamemeta: chararray
-  );
+  rcode: int,
+  answer: bag { t: tuple(a:chararray, b:chararray, c:chararray, d:chararray, e:chararray) },
+  authoritative: bag { t: tuple(a:chararray, b:chararray, c:chararray, d:chararray, e:chararray) },
+  additional: bag { t: tuple(a:chararray, b:chararray, c:chararray, d:chararray, e:chararray) }
+    );
 
-p1 = FOREACH rawcsv GENERATE ts, src_ip, dst_ip, domain, rev_domain, qtype, answer;
+-- Get all valid A-lookup records
+p1 = FILTER dnsrequests by (ts is not null) AND (type == 0) AND (domain is not null) AND (%(qtypes)s);
+
+-- Collect required columns, plus the reverse domain name
+p2 = FOREACH p1 GENERATE ts, src_ip, domain, ExtractRegisteredDomain(LOWER(domain)) AS r_domain, qtype, answer;
+
+p3 = FILTER p2 BY (r_domain is not null);
+
+p4 = FOREACH p3 GENERATE ts, src_ip, domain, ReverseDomain(r_domain) AS rev_domain, qtype, answer;
 
 -- Filter on domain name using Java-style regex syntax
-p2 = FILTER p1 BY rev_domain MATCHES '%(regex)s';
+p5 = FILTER p4 BY rev_domain MATCHES '%(regex)s';
 
 -- Merge all data into a single partition
-p3 = FOREACH (GROUP p2 ALL) GENERATE FLATTEN($1);
+p6 = FOREACH (GROUP p5 ALL) GENERATE FLATTEN($1);
 
 -- Store results to disk
-STORE p3 INTO '%(output)s';
+STORE p6 INTO '%(output)s';
