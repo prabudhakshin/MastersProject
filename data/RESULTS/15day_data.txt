@@ -1,0 +1,6 @@
+run                   | Wallclock     | CPU Time      | #records      | #maptasks
+
+raw
+raw_bz2
+raw_reformat_dedup
+ref_dedup_bucketing

@@ -18,7 +18,7 @@ import org.apache.pig.data.DataType;
 public class BucketizeByHashCode extends EvalFunc<String>
 {
     public String exec(Tuple input) throws IOException {
-      long numbuckets = 300;
+      long numbuckets = 10;
       String registered_domain = (String)input.get(0);
       int signedHashCode = registered_domain.hashCode();
       long unsignedHashCode = signedHashCode & 0x00000000ffffffffL;
