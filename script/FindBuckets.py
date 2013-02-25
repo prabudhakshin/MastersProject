@@ -5,11 +5,57 @@ import optparse
 import StringIO
 import registered_domain as regdom
 from collections import defaultdict as defdic
+import re
 
 domainFileName = ""
 dateRange = ""
 queryTypes = ""
 TOTBUCKETS = 200
+
+qtypeCodeToNameMap = {"1"  : "A",
+                      "12" : "PTR",
+                      "28" : "AAAA"}
+qtypeNameToCodeMap = {      "KX" : "36",
+                           "KEY" : "25",
+                         "DHCID" : "49",
+                            "DS" : "43",
+                        "DNSKEY" : "48",
+                          "CERT" : "37",
+                           "APL" : "42",
+                           "SOA" : "6",
+                           "LOC" : "29",
+                           "SPF" : "99",
+                           "SIG" : "24",
+                         "RRSIG" : "46",
+                             "A" : "1",
+                          "AAAA" : "28",
+                         "SSHFP" : "44",
+                           "PTR" : "12",
+                          "NSEC" : "47",
+                            "TA" : "32768",
+                      "NSEC3PARAM" : "51",
+                           "TXT" : "16",
+                           "HIP" : "55",
+                            "MX" : "15",
+                         "AFSDB" : "18",
+                      "IPSECKEY" : "45",
+                            "RP" : "17",
+                           "SRV" : "33",
+                           "DLV" : "32769",
+                         "DNAME" : "39",
+                            "NS" : "2",
+                          "TSIG" : "250",
+                           "CAA" : "257",
+                         "NSEC3" : "50",
+                         "NAPTR" : "35",
+                         "CNAME" : "5",
+                          "TLSA" : "52",
+                          "TKEY" : "249"}
+
+acceptedQueryTypeCodes = ["36","25","49","43","48","37","42","6","29","99",
+                          "24","46","1","28","44","12","47","32768","51","16",
+                          "55","15","18","45","17","33","32769","39","2","250",
+                          "257","50","35","5","52","249"]
 
 bucket_distribution = {
   "A_COM": 34.418,
@@ -104,25 +150,48 @@ def parseArgs(argslist):
   dateRange = parseDateField(optparser, dateRange)
   qtypefield = options.querytype
 
-  qtypeCodeToNameMap = {"1"  : "A",
-                        "12" : "PTR",
-                        "28" : "AAAA"}
-                        
-  queryTypes = []
+  queryTypeName = []
   queryTypeCode = []
+  re_qcode = re.compile("^\d+$")
+  re_qname = re.compile("^[a-zA-Z]+$")
+
   if qtypefield == "*":
-    queryTypes = ["A", "PTR", "AAAA", "OTHR"]
+    queryTypeName = ["A", "PTR", "AAAA", "OTHR"]
     queryTypeCode = ["0"]
   else:
-    queryTypeCode = qtypefield.split(",")
-    for atype in queryTypeCode:
-      if atype in qtypeCodeToNameMap:
-        queryTypes.append(qtypeCodeToNameMap[atype])
-      else:
-        if "OTHR" not in queryTypes:
-          queryTypes.append("OTHR")
+    queryTypes = qtypefield.split(",")
+    for atype in queryTypes:
+      atype = atype.strip() 
+      # Check if query type code was supplied
+      if re_qcode.match(atype):
+        if atype not in acceptedQueryTypeCodes:
+          printHelpExit(optparser, 'Given query type "%s" is not valid.' % (atype))
+        if atype in qtypeCodeToNameMap:
+          if qtypeCodeToNameMap[atype] not in queryTypeName:
+            queryTypeName.append(qtypeCodeToNameMap[atype])
+        else:
+          if "OTHR" not in queryTypeName:
+            queryTypeName.append("OTHR")
 
-  return domainFileName, dateRange, queryTypes, queryTypeCode
+        # add the query type code to the list
+        if atype not in queryTypeCode:
+          queryTypeCode.append(atype)
+
+      # check if query type name was supplied
+      elif re_qname.match(atype):
+        if atype in qtypeNameToCodeMap:
+          if qtypeNameToCodeMap[atype] not in queryTypeCode:
+            queryTypeCode.append(qtypeNameToCodeMap[atype])
+        else:
+           printHelpExit(optparser, 'Given query type "%s" is not valid.' % (atype))
+
+        if atype not in queryTypeName:
+          queryTypeName.append(atype) 
+
+      else:
+         printHelpExit(optparser, 'Given query type "%s" is not valid.' % (atype))
+
+  return domainFileName, dateRange, queryTypeName, queryTypeCode
 
 def getJavahash(s):
   h = 0
@@ -204,6 +273,8 @@ def makequerystring(queryTypes):
 def main():
 
   domainFileName, dateRange, queryTypes, queryTypeCodes = parseArgs(sys.argv[1:])
+  print queryTypes
+  print queryTypeCodes
   domainFileDesc = open(domainFileName, "r")
   domainList = []
   regDomainList = []
