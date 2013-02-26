@@ -15,6 +15,7 @@ TOTBUCKETS = 200
 qtypeCodeToNameMap = {"1"  : "A",
                       "12" : "PTR",
                       "28" : "AAAA"}
+
 qtypeNameToCodeMap = {      "KX" : "36",
                            "KEY" : "25",
                          "DHCID" : "49",
