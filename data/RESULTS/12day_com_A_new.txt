@@ -1,0 +1,6 @@
+run                 |Wallclock|CPU Time|#inputrecords|#maptasks|DiskUsage in MB|#output records
+baseline (raw_gz)   |2687|286352|8290993902|3215|533089|6548
+raw (bz2)           |7003|717464|8290993902|3465|442005|6548
+reformat and dedup  | 980| 67364|6566518641| 565|103241|4361
+just bucketing      |2271|113895|2678180713| 768|456586|6548
+ref_dedup_bucketing | 681| 32739|2721810123| 362|101459|4361

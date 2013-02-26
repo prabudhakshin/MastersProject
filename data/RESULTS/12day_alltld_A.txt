@@ -1,0 +1,3 @@
+run                 |Wallclock|CPU Time|#inputrecords|#maptasks|#output records
+baseline (raw_gz)   |2757|298354|8290993902|3215|191565907 
+ref_dedup_bucketing | 634| 50617|3899029174| 408|151085536
