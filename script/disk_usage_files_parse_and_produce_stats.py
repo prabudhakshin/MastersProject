@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! /usr/bin/env python
 import sys
 import re
 import numpy
@@ -23,6 +23,7 @@ for line in fileHandle:
     pass
   fileSizeMBytes.append(fileSize)
 
-print ("{:20>} | {}".format("Total Entries:"), len(fileSizeMBytes))
-print ("{:20>} | {:6.2f>}".format("Stand. Dev:"), numpy.std(fileSizeMBytes))
-print ("{:20>} | {:6.2f>}".format("Mean:"), numpy.mean(fileSizeMBytes))
+print ("{:>20} | {:>6.2f}".format("Total Entries:", len(fileSizeMBytes)))
+print ("{:>20} | {:>6.2f}".format("TotalSize in MB:", sum(fileSizeMBytes)))
+print ("{:>20} | {:>6.2f}".format("Stand. Dev:", numpy.std(fileSizeMBytes)))
+print ("{:>20} | {:>6.2f}".format("Mean:", numpy.mean(fileSizeMBytes)))

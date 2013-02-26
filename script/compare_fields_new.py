@@ -38,5 +38,7 @@ for index, experiment in enumerate(fieldvaluelist):
 plt.legend(bars, experimentnames)
 xtickpos = xpos + 0.5
 plt.xticks(xtickpos, fieldnames)
+plt.grid()
+plt.ylim(0,1.3)
 #plt.ylabel("Relative values", fontsize=20)
 plt.show()
