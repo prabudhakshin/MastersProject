@@ -27,13 +27,13 @@ rawcsv = LOAD '%(input)s' as (
 
 p1 = FOREACH rawcsv GENERATE ts, src_ip, dst_ip, domain, rev_domain, qtype, answer;
 
-p2 = FILTER p1 by (%(qtypes)s);
+p2 = FILTER p1 by (%(qtypes)s) AND rev_domain MATCHES '%(regex)s';
 
 -- Filter on domain name using Java-style regex syntax
-p3 = FILTER p2 BY rev_domain MATCHES '%(regex)s';
+-- p3 = FILTER p2 BY rev_domain MATCHES '%(regex)s';
 
 -- Merge all data into a single partition
-p4 = FOREACH (GROUP p3 ALL) GENERATE FLATTEN($1);
+-- p4 = FOREACH (GROUP p3 ALL) GENERATE FLATTEN($1);
 
 -- Store results to disk
-STORE p4 INTO '%(output)s';
+STORE p2 INTO '%(output)s';

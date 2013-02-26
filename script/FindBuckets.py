@@ -34,7 +34,7 @@ qtypeNameToCodeMap = {      "KX" : "36",
                            "PTR" : "12",
                           "NSEC" : "47",
                             "TA" : "32768",
-                      "NSEC3PARAM" : "51",
+                    "NSEC3PARAM" : "51",
                            "TXT" : "16",
                            "HIP" : "55",
                             "MX" : "15",
@@ -104,7 +104,7 @@ def get_regex(domain_list):
       buf2.write('%s|' % v)
     buf.write('(?:%s\\\\.(?:%s))|' % (key, buf2.getvalue()[:-1]))
 
-  print '^%s$' % buf.getvalue()[:-1]
+  #print '^%s$' % buf.getvalue()[:-1]
   return '^%s$' % buf.getvalue()[:-1]
 
 def write_pig(inputstring, outputstring, qtypestring, regexstring):
@@ -140,6 +140,7 @@ def parseArgs(argslist):
   optparser = optparse.OptionParser(usage=usagestring)
   optparser.add_option("-p", "--period", dest="daterange", help="Range of days of the form '20120201,20120203,...' or 20120201-20120227 or 20120201-20120227,20120301-20120330", type=str, default="20120405");
   optparser.add_option("-q", "--querytype", dest="querytype", help="Comma separated DNS querytypes (1,12,28...) to search. * to include all query types", type=str, default="1");
+  optparser.add_option("-o", "--outputpath", dest="outputpath", help="Path to output dir", type=str, default="output_smart.gz");
 
   (options, args) = optparser.parse_args(argslist)
 
@@ -150,6 +151,7 @@ def parseArgs(argslist):
   dateRange = options.daterange
   dateRange = parseDateField(optparser, dateRange)
   qtypefield = options.querytype
+  outputpath = "/user/pdhakshi/pigouts/filter_results/" + options.outputpath
 
   queryTypeName = []
   queryTypeCode = []
@@ -192,7 +194,7 @@ def parseArgs(argslist):
       else:
          printHelpExit(optparser, 'Given query type "%s" is not valid.' % (atype))
 
-  return domainFileName, dateRange, queryTypeName, queryTypeCode
+  return domainFileName, dateRange, queryTypeName, queryTypeCode, outputpath
 
 def getJavahash(s):
   h = 0
@@ -207,7 +209,7 @@ def getBucketNumber(percent_dist_for_group, domainHashCode):
   if (bucketCount < 1):
     bucketCount = 1
 
-  print 'numbuckets: ', bucketCount
+  #print 'numbuckets: ', bucketCount
   return str(domainHashCode % bucketCount)
 
 def findFiles(domainList, queryTypes, dateRange):
@@ -229,7 +231,7 @@ def findFiles(domainList, queryTypes, dateRange):
         tld = "OTHR"
 
     domainHashCode = getJavahash(revRegDomain)
-    print revRegDomain, domainHashCode
+    #print revRegDomain, domainHashCode
 
     qtype_tld_list = []
     for qtype in queryTypes:
@@ -273,9 +275,9 @@ def makequerystring(queryTypes):
 
 def main():
 
-  domainFileName, dateRange, queryTypes, queryTypeCodes = parseArgs(sys.argv[1:])
-  print queryTypes
-  print queryTypeCodes
+  domainFileName, dateRange, queryTypes, queryTypeCodes,outputpath = parseArgs(sys.argv[1:])
+  #print queryTypes
+  #print queryTypeCodes
   domainFileDesc = open(domainFileName, "r")
   domainList = []
   regDomainList = []
@@ -297,11 +299,11 @@ def main():
 #  fileinputstring = "/user/pdhakshi/SIE_DATA/BY_MULTIPARAMS/{%s}.gz/*" % (",".join(filesToSearch))
   regexstring = get_regex(regDomainList)
 
-  for aFile in filesToSearch:
-    print aFile
+  #for aFile in filesToSearch:
+    #print aFile
 
   querystring = makequerystring (queryTypeCodes)
-  write_pig(fileinputstring, "/user/pdhakshi/output", querystring, regexstring)
+  write_pig(fileinputstring, outputpath, querystring, regexstring)
 
 if __name__ == "__main__":
   main()

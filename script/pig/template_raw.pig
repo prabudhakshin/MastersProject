@@ -46,7 +46,7 @@ p4 = FOREACH p3 GENERATE ts, src_ip, domain, ReverseDomain(r_domain) AS rev_doma
 p5 = FILTER p4 BY rev_domain MATCHES '%(regex)s';
 
 -- Merge all data into a single partition
-p6 = FOREACH (GROUP p5 ALL) GENERATE FLATTEN($1);
+-- p6 = FOREACH (GROUP p5 ALL) GENERATE FLATTEN($1);
 
 -- Store results to disk
-STORE p6 INTO '%(output)s';
+STORE p5 INTO '%(output)s';

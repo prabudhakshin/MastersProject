@@ -14,9 +14,9 @@ for line in fileHandle:
   fileSize = float(filesizeCol[:-1])
   if (filesizeCol[-1] == 'g'):
     fileSize = fileSize * 1024
-  else if (filesizeCol[-1] == 'm'):
+  elif (filesizeCol[-1] == 'm'):
     fileSize = fileSize
-  else if (filesizeCol[-1] == 'k'):
+  elif (filesizeCol[-1] == 'k'):
     fileSize = fileSize / 1024.0
   else:
     print ("Weird file size: {}",format(filesizeCol))

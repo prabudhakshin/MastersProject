@@ -39,7 +39,7 @@ def get_regex(domain_list):
       buf2.write('%s|' % v)
     buf.write('(?:%s\\\\.(?:%s))|' % (key, buf2.getvalue()[:-1]))
 
-  print '^%s$' % buf.getvalue()[:-1]
+  #print '^%s$' % buf.getvalue()[:-1]
   return '^%s$' % buf.getvalue()[:-1]
 
 def write_pig(inputstring, outputstring, qtypestring, regexstring):
@@ -51,7 +51,7 @@ def write_pig(inputstring, outputstring, qtypestring, regexstring):
 
     fin.close()
     template = buf.getvalue().strip()
-    print template
+    #print template
 
     print template % {'input' : inputstring,
                       'qtypes': qtypestring,
@@ -82,7 +82,7 @@ def parseArgs(argslist):
   optparser = optparse.OptionParser(usage=usagestring)
   optparser.add_option("-p", "--period", dest="daterange", help="Range of days of the form '20120201,20120203,...' or 20120201-20120227 or 20120201-20120227,20120301-20120330", type=str, default="20120405");
   optparser.add_option("-q", "--querytype", dest="querytype", help="DNS querytypes (A, PTR, AAAA, OTHR) to search. * to include all query types", type=str, default="1");
-  optparser.add_option("-o", "--outputfile", dest="outputfile", help="HDFS output dir path", type=str, default="output_raw");
+  optparser.add_option("-o", "--outputpath", dest="outputpath", help="Path to output dir", type=str, default="output.gz");
 
   (options, args) = optparser.parse_args(argslist)
 
@@ -93,7 +93,7 @@ def parseArgs(argslist):
   dateRange = options.daterange
   yearmonthToDayMap = parseDateField(optparser, dateRange)
   qtypefield = options.querytype
-  outputfile = "/user/pdhakshi/" + options.outputfile
+  outputpath = "/user/pdhakshi/pigouts/filter_results/" + options.outputpath
 
   queryTypes = []
   if qtypefield == "*":
@@ -101,7 +101,7 @@ def parseArgs(argslist):
   else:
     queryTypes = qtypefield.split(",")
 
-  return domainFileName, yearmonthToDayMap, queryTypes, outputfile
+  return domainFileName, yearmonthToDayMap, queryTypes, outputpath
 
 def makeInputString(yearmonthToDayMap):
  # each input file is of the form:
@@ -115,7 +115,7 @@ def makeInputString(yearmonthToDayMap):
    namePartial = basePath + yearmonth + fileNamePartial
    filelist.append(namePartial + ",".join(daylist) + fileExtension)
 
- print ",".join(filelist)
+ #print ",".join(filelist)
  return ",".join(filelist)
 
 def makequerystring(queryTypes):
@@ -131,7 +131,7 @@ def makequerystring(queryTypes):
 
 def main():
 
-  domainFileName, yearmonthToDayMap, queryTypes, outputfilepath = parseArgs(sys.argv[1:])
+  domainFileName, yearmonthToDayMap, queryTypes, outputpath = parseArgs(sys.argv[1:])
   domainFileDesc = open(domainFileName, "r")
   domainList = []
   regDomainList = []
@@ -151,7 +151,7 @@ def main():
   inputstring = makeInputString(yearmonthToDayMap)
   querystring = makequerystring (queryTypes)
   regexstring = get_regex(regDomainList)
-  write_pig(inputstring, outputfilepath, querystring, regexstring)
+  write_pig(inputstring, outputpath, querystring, regexstring)
 
 if __name__ == "__main__":
   main()
