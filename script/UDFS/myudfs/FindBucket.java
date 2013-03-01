@@ -1,7 +1,7 @@
 package myudfs;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.StringTokenizer;
 import java.util.Random;
 import java.lang.StringBuffer;
@@ -20,6 +20,29 @@ public class FindBucket extends EvalFunc<String>
     public String exec(Tuple input) throws IOException {
 
       long TOTBUCKETS = 200;
+      HashMap<String, Double> querytype_tld_distribution= new HashMap<String, Double>();
+
+      querytype_tld_distribution.put("A_COM",     new Double(34.494));
+      querytype_tld_distribution.put("A_NET",     new Double(22.182));
+      querytype_tld_distribution.put("A_ORG",     new Double(2.725));
+      querytype_tld_distribution.put("A_ARPA",    new Double(0.136));
+      querytype_tld_distribution.put("A_OTHR",    new Double(7.029));
+      querytype_tld_distribution.put("PTR_COM",   new Double(0.098));
+      querytype_tld_distribution.put("PTR_NET",   new Double(0.065));
+      querytype_tld_distribution.put("PTR_ORG",   new Double(0.010));
+      querytype_tld_distribution.put("PTR_ARPA",  new Double(15.260));
+      querytype_tld_distribution.put("PTR_OTHR",  new Double(0.017));
+      querytype_tld_distribution.put("AAAA_COM",  new Double(7.215));
+      querytype_tld_distribution.put("AAAA_NET",  new Double(3.510));
+      querytype_tld_distribution.put("AAAA_ORG",  new Double(0.358));
+      querytype_tld_distribution.put("AAAA_ARPA", new Double(0.004));
+      querytype_tld_distribution.put("AAAA_OTHR", new Double(2.001));
+      querytype_tld_distribution.put("OTHR_COM",  new Double(2.357));
+      querytype_tld_distribution.put("OTHR_NET",  new Double(1.220));
+      querytype_tld_distribution.put("OTHR_ORG",  new Double(0.358));
+      querytype_tld_distribution.put("OTHR_ARPA", new Double(0.295));
+      querytype_tld_distribution.put("OTHR_OTHR", new Double(0.663));
+
       int queryType = (Integer)input.get(0);
       String revRegisteredDomain = (String)input.get(1);
       String inputSplitPath = (String)input.get(2);
@@ -52,52 +75,14 @@ public class FindBucket extends EvalFunc<String>
         topLevelDomain = "NET";
       } else if (tld.equals("arpa") || tld.equals("ARPA") /*15*/) {
         topLevelDomain = "ARPA";
-      } else /*15%*/ {
+      } else if (tld.equals("org") || tld.equals("ORG") /*3*/) {
+        topLevelDomain = "ORG";
+      } else /*12%*/ {
         topLevelDomain = "OTHR";
       }
 
       String qtype_tld = queryTypeBucket + "_" + topLevelDomain;
-      double percent_of_buckets_for_current_group  = 0;
-
-      if (qtype_tld.equals("A_COM")) {
-        percent_of_buckets_for_current_group = 34.418;
-      } else if (qtype_tld.equals("A_NET")) {
-        percent_of_buckets_for_current_group = 21.807;
-      } else if (qtype_tld.equals("A_ARPA")) {
-        percent_of_buckets_for_current_group = 0.129;
-      } else if (qtype_tld.equals("A_OTHR")) {
-        percent_of_buckets_for_current_group = 9.910;
-      }
-
-      else if (qtype_tld.equals("PTR_COM")) {
-        percent_of_buckets_for_current_group = 0.108;
-      } else if (qtype_tld.equals("PTR_NET")) {
-        percent_of_buckets_for_current_group = 0.063;
-      } else if (qtype_tld.equals("PTR_ARPA")) {
-        percent_of_buckets_for_current_group = 14.869;
-      } else if (qtype_tld.equals("PTR_OTHR")) {
-        percent_of_buckets_for_current_group = 0.029;
-      }
-
-      else if (qtype_tld.equals("AAAA_COM")) {
-        percent_of_buckets_for_current_group = 7.225;
-      } else if (qtype_tld.equals("AAAA_NET")) {
-        percent_of_buckets_for_current_group = 3.468;
-      } else if (qtype_tld.equals("AAAA_ARPA")) {
-        percent_of_buckets_for_current_group = 0.004;
-      } else if (qtype_tld.equals("AAAA_OTHR")) {
-        percent_of_buckets_for_current_group = 2.407;
-      }
-
-      else if (qtype_tld.equals("OTHR_COM")) {
-        percent_of_buckets_for_current_group = 2.703;
-      } else if (qtype_tld.equals("OTHR_NET")) {
-        percent_of_buckets_for_current_group = 1.390;
-      } else if (qtype_tld.equals("OTHR_ARPA")) {
-        percent_of_buckets_for_current_group = 0.306;
-      } else if (qtype_tld.equals("OTHR_OTHR")) {
-        percent_of_buckets_for_current_group = 1.163;
-      }
+      double percent_of_buckets_for_current_group  = querytype_tld_distribution.get(qtype_tld).doubleValue();
 
       // Identify domain bucket based on hashcode value
       long numbuckets = (long) (TOTBUCKETS*percent_of_buckets_for_current_group/100.0);
@@ -108,8 +93,6 @@ public class FindBucket extends EvalFunc<String>
       long unsignedHashCode = signedHashCode & 0x00000000ffffffffL;
       long bucket_id = unsignedHashCode % numbuckets;
       String domainBucketNumber = String.valueOf(bucket_id);
-
-      // System.out.println("Total buckets: " + numbuckets + "; Current bucket: " + domainBucketNumber);
 
       // return string of type
       // '20120201_AAAA_NET_198'

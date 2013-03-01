@@ -13,17 +13,17 @@ def runcommand(command):
     return e.returncode
 
 inputfile = sys.argv[1]
-outputfile = "/home/pdhakshi/WorkSpace/data/process_month_data_100.log"
+outputfile = "/home/pdhakshi/WorkSpace/data/process_month_data.log"
 
 inputfilehandle = open(inputfile, "r")
 outputfilehandle = open(outputfile, "w")
 
-yearmonth = sys.argv[2]
-
+#yearmonth = sys.argv[2]
 listofdays = [aday.strip() for aday in inputfilehandle]
 
 for aday in listofdays:
   print >> outputfilehandle, "Handling day: %s" % (aday)
+  yearmonth = aday[0:6]
   command = "pig -t ColumnMapKeyPrune -param paramday=%s -param paramyearmonth=%s multilevel_bucketing.pig" % (aday, yearmonth)
   #command = "pig -param paramday=%s -param paramyearmonth=%s dedup_reformat.pig" % (aday, yearmonth)
   #command = "pig -param paramday=%s -param paramyearmonth=%s just_bucketize.pig" % (aday, yearmonth)
