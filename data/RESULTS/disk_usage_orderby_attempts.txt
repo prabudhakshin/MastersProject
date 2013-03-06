@@ -1,0 +1,10 @@
+Run              |DiskUsage
+No Ordering      |34692
+Orderby_ts       |43236
+Orderby_srcip    |33552
+Orderby_ttl      |29296
+Orderby_dstip    |22432
+Orderby_answer   |19180
+Orderby_domain   |18852
+Orderby_revdomain|18744
+Orderby_multiple |17016
