@@ -93,10 +93,11 @@ if [[ $? != 0 ]]; then  echo "Failed to clear cache: ccied33"; fi
 sudo -u apitsill /opt/apitsill/scripts/prabu.sh ccied34
 if [[ $? != 0 ]]; then  echo "Failed to clear cache: ccied34"; fi
 
-#sudo -u apitsill /opt/apitsill/scripts/prabu.sh ccied35
-#if [[ $? != 0 ]]; then  echo "Failed to clear cache: ccied35"; fi
-#sudo -u apitsill /opt/apitsill/scripts/prabu.sh ccied36
-#if [[ $? != 0 ]]; then  echo "Failed to clear cache: ccied36"; fi
+sudo -u apitsill /opt/apitsill/scripts/prabu.sh ccied35
+if [[ $? != 0 ]]; then  echo "Failed to clear cache: ccied35"; fi
+
+sudo -u apitsill /opt/apitsill/scripts/prabu.sh ccied36
+if [[ $? != 0 ]]; then  echo "Failed to clear cache: ccied36"; fi
 
 sudo -u apitsill /opt/apitsill/scripts/prabu.sh kim
 if [[ $? != 0 ]]; then  echo "Failed to clear cache: kim"; fi

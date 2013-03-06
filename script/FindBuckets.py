@@ -59,22 +59,26 @@ acceptedQueryTypeCodes = ["36","25","49","43","48","37","42","6","29","99",
                           "257","50","35","5","52","249"]
 
 bucket_distribution = {
-  "A_COM": 34.418,
-  "A_NET": 21.807,
-  "A_ARPA": 0.129,
-  "A_OTHR": 9.910,
-  "PTR_COM": 0.108,
-  "PTR_NET": 0.063,
-  "PTR_ARPA": 14.869,
-  "PTR_OTHR": 0.029,
-  "AAAA_COM": 7.225,
-  "AAAA_NET": 3.468,
-  "AAAA_ARPA": 0.004,
-  "AAAA_OTHR": 2.407,
-  "OTHR_COM": 2.703,
-  "OTHR_NET": 1.390,
-  "OTHR_ARPA": 0.306,
-  "OTHR_OTHR": 1.163 }
+                       "A_COM"     : 34.494,
+                       "A_NET"     : 22.182,
+                       "A_ORG"     : 2.725,
+                       "A_ARPA"    : 0.136,  
+                       "A_OTHR"    : 7.029,  
+                       "PTR_COM"   : 0.098,  
+                       "PTR_NET"   : 0.065,  
+                       "PTR_ORG"   : 0.010,  
+                       "PTR_ARPA"  : 15.260,  
+                       "PTR_OTHR"  : 0.017,  
+                       "AAAA_COM"  : 7.215,  
+                       "AAAA_NET"  : 3.510,  
+                       "AAAA_ORG"  : 0.358,  
+                       "AAAA_ARPA" : 0.004,  
+                       "AAAA_OTHR" : 2.001,  
+                       "OTHR_COM"  : 2.357,  
+                       "OTHR_NET"  : 1.220,  
+                       "OTHR_ORG"  : 0.358,  
+                       "OTHR_ARPA" : 0.295,  
+                       "OTHR_OTHR" : 0.663 }
 
 def printHelpExit(parser, errormsg):
   print "%s\n" % errormsg
@@ -151,7 +155,7 @@ def parseArgs(argslist):
   dateRange = options.daterange
   dateRange = parseDateField(optparser, dateRange)
   qtypefield = options.querytype
-  outputpath = "/user/pdhakshi/pigouts/filter_results/" + options.outputpath
+  outputpath = "/user/pdhakshi/pigouts/filter_results_month/" + options.outputpath
 
   queryTypeName = []
   queryTypeCode = []
@@ -254,10 +258,11 @@ def makeInputString(filesToSearch):
     yearmonthday = afile[0:8]
     daytofilesmap[yearmonthday].append(afile)
 
-  basepath = "/user/pdhakshi/SIE_DATA/BY_MULTIPARAMS/"
+  #basepath = "/user/pdhakshi/SIE_DATA/BY_MULTIPARAMS/"
+  basepath = "/user/pdhakshi/pigouts/smart_data_2months/"
   outputfilelist = []
   for (aday, filelist) in daytofilesmap.items():
-    outputfilelist.append("%s/{%s}.gz/*" % (aday, ",".join(filelist)))
+    outputfilelist.append("%s/{%s}.gz/*.gz" % (aday, ",".join(filelist)))
 
   return basepath + "{" + ",".join(outputfilelist) + "}"
 

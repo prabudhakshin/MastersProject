@@ -93,7 +93,7 @@ def parseArgs(argslist):
   dateRange = options.daterange
   yearmonthToDayMap = parseDateField(optparser, dateRange)
   qtypefield = options.querytype
-  outputpath = "/user/pdhakshi/pigouts/filter_results/" + options.outputpath
+  outputpath = "/user/pdhakshi/pigouts/filter_results_month/" + options.outputpath
 
   queryTypes = []
   if qtypefield == "*":
