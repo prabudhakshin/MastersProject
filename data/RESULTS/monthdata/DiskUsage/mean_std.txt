@@ -1,0 +1,34 @@
+raw_30day
+
+  Total Entries: | 7627.00
+TotalSize in MB: | 1247029.30
+     Stand. Dev: |  29.66
+           Mean: | 163.50
+
+bz2_30day
+
+  Total Entries: | 7605.00
+TotalSize in MB: | 1033824.20
+     Stand. Dev: |  22.42
+           Mean: | 135.94
+
+ref_ded_30day
+
+  Total Entries: | 1092.00
+TotalSize in MB: | 135248.30
+     Stand. Dev: |  28.62
+           Mean: | 123.85
+
+Just_buck_30day
+
+  Total Entries: | 5613.00
+TotalSize in MB: | 1061866.48
+     Stand. Dev: | 124.54
+           Mean: | 189.18
+
+Smart data
+
+  Total Entries: | 10212.00
+TotalSize in MB: | 145572.73
+     Stand. Dev: |  22.15
+           Mean: |  14.26
