@@ -1,0 +1,6 @@
+run                           |DiskUsage (MB)
+Baseline                      |1247029
+BZ2 Compression               |1033824
+Reformat/Prune Recs           | 135248
+PartitionData                 |1061866
+Partition with Reformat/Prune | 145572
