@@ -1,0 +1,10 @@
+run | DiskUsage (Bytes/Record)
+No Ordering | 8785735082
+by_ts|10626981974
+by_srcip|8588308845
+by_ttl|7835419855
+by_dstip|6680868044
+by_answer|6197137879
+by_domain|6158920715
+by_revdomain|5614364454
+by_multiple|5102081422
