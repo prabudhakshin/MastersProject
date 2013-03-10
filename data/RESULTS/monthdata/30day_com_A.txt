@@ -1,6 +1,6 @@
 run                           |Wallclock|CPUTime|#InputRecords|#MapTasks|#OutputRecords
-Baseline                      |8640|660849020|19427337680|7605|49235
-BZ2 Compression               |||||
-Reformat/Prune Recs           |1801|163431090|15622454316|1081|44651
-PartitionData                 |3453|264391260| 6252469652|1792|49235
-Partition with Reformat/Prune |1423| 67175040| 5116127719| 379|44651
+Baseline                      | 8640| 660849020|19427337680|7605|49235
+BZ2 Compression               |17194|1686462110|19427337680|8087|49235
+Reformat/Prune Recs           | 1801| 163431090|15622454316|1081|44651
+PartitionData                 | 3453| 264391260| 6252469652|1792|49235
+Partition with Reformat/Prune | 1423|  67175040| 5116127719| 379|44651
