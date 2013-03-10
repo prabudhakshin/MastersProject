@@ -1,0 +1,3 @@
+run                           |Wallclock|CPUTime|#InputRecords|#MapTasks|#OutputRecords
+Baseline                      |7211|675153970|19427337680|7605|2777113
+Partition with Reformat/Prune |1161|103582620| 8831660627| 608|2670400
