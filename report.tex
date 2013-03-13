@@ -41,7 +41,7 @@
 
 \begin{abstract} 
 \noindent
-Log data from DNS resolvers contain rich information that is quite useful for various research use cases such as estimating the popularity of websites. Log data from approximately 39k resolvers has been collected and stored on HDFS. The data is so huge and not optimally organized that it takes a lot of time and resources to search records of interest from the the log. In this project, we investigate techniques to port the log data to a new format so that it speeds up the query time and takes less resources both to store the data and to query the data. We investigated bzip compression, reformatting/pruning unessential records and partitioning the records into separate buckets and from our experiments, we found that using a combination of reformatting/pruning records with partitioning and efficiently sorting the records based on multiple fields speeds up the domain query by 6x and takes approximately 8x less resources to query in comparison with unorganized data. Also, the new data takes about 9x less space on disk.
+Log data from DNS resolvers contain rich information that is quite useful for various research use cases such as estimating the popularity of websites. Log data from approximately 39k resolvers has been collected and stored on HDFS. The data is so huge and not optimally organized that it takes a lot of time and resources to search records of interest from the the log. In this project, we investigate techniques to port the log data to a new format so that it speeds up the query time and takes less resources both to store the data and to query the data. We investigated bzip compression, reformatting/pruning unessential records and partitioning the records into separate buckets and from our experiments, we found that using a combination of reformatting/pruning records with partitioning and efficiently sorting the records based on multiple fields speeds up the domain query by 6 times and takes approximately 8 times less resources to query in comparison with unorganized data. Also, the new data takes about 9 times less space on disk.
 \end{abstract} 
 
 \section {Introduction}
@@ -145,24 +145,24 @@ A straightforward and simpler approach to organize the data in order to speedup 
 As stated earlier in the report, a common query is to filter all the log records that match a domain(s) of interest and has query type $A$. Based on the observation, we estimated the distribution of the TLDs and the query type in the log records.
 
 \begin{figure}[h] 
-\includegraphics[width=1\linewidth]{./data/RESULTS/graphs/tld_distribution.png}
+\includegraphics[width=1\linewidth]{./data/RESULTS/graphs/tld_distribution_newcol.png}
 \caption {\textit{Distribution of log records by TLD.}}
 \end{figure}
 
 \begin{figure}[H] 
 \centering
-\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/qtype_distribution.png}
+\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/qtype_distribution_newcol.png}
 \caption {\textit{Distribution of log records by query type.}}
 \end{figure}
 
 \noindent
-Based on the TLD distribution above, it is clear that TLDs \texttt{com, net, arpa\footnote{arpa TLD is used for reverse dns look up i.e., given an IP address like 192.0.2.25, it is transformed as a name `25.2.0.192.in-addr.arpa' and then regular DNS resolution for this name is done with query type PTR to get the host name corresponding to the IP address.} and org} together constitute $87\%$ of the total records and the remaining $13\%$ is covered by all other TLDs. Similarly, the query type distribution chart shows that, query types \texttt{A, PTR and AAAA} are more prominent and covers $95\%$ of the total log records and other query types cover the remaining $5\%$ of the records. Osterweil et al.\cite{toptalker} had done similar estimation of the distribution of query types among \texttt{.com/.net} name servers; considering only the \texttt{.com/.net} domains, the relative query type distribution that we present here is in line with the numbers that Osterweil et al. reported.
+Based on the TLD distribution above, it is clear that TLDs \texttt{com, net, arpa\footnote{arpa TLD is used for reverse dns look up i.e., given an IP address like 192.0.2.25, it is transformed as a name `25.2.0.192.in-addr.arpa' and then regular DNS resolution for this name is done with query type PTR to get the host name corresponding to the IP address.} and org} together constitute $87\%$ of the total records and the remaining $13\%$ is covered by all other TLDs. Similarly, the query type distribution chart shows that, query types \texttt{A, PTR and AAAA} are more prominent and covers $95\%$ of the total log records and other query types cover the remaining $5\%$ of the records. Osterweil \textit{et al.}\cite{toptalker} had done similar estimation of the distribution of query types among \texttt{.com/.net} name servers; considering only the \texttt{.com/.net} domains, the relative query type distribution that we present here is in line with the numbers that Osterweil et al. reported.
 \\\\
 Since the user can query for a record by specifying the domain and the query type, it will be useful to study the combined distribution of TLDs and query type record. While finding the combined distribution, we take the top four TLDs as it is and we group all other TLDs into one single group and call it as a single TLD \texttt{OTHR}. Similarly, we take the top three query types as it is and tag all other query types as \texttt{OTHR}. So the TLD-querytype combination has twenty possibilities and the distribution of the records looks as below.
 
 \begin{figure}[H] 
 \centering
-\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/qtype_tld_dist.png}
+\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/qtype_tld_dist_newcol.png}
 \caption {\textit{Distribution of log records by query type and TLD.}}
 \end{figure}
 
@@ -182,7 +182,7 @@ Then, the search space for a domain query with a query type filter in a given da
 \\\\
 Since the goal is to reduce the search space for the queries, creating smaller buckets within each of the $1^{st}$ level buckets will further reduce the bucket size. Bringing in the simpler idea of partitioning records based on the hashcode of the domains, all the records which fall into a particular $1^{st}$ level bucket are further hashed into $n$ smaller buckets termed $2^{nd}$ level buckets. The number of $2^{nd}$ level buckets $n$ within each $1^{st}$ level bucket is determined by the relative distribution of the records among the $1^{st}$ level buckets; for instance, A\_NET has thrice as many $2^{nd}$ level buckets as AAAA\_COM.
 \\\\
-The idea of having two levels of partitioning is motivated by domain queries of varying size (\#domains in the query). For \textit{single query} (only one domain), hashcode based partitioning is sufficient to reduce the search space. For \textit{small queries} (tens of domains) with mixed TLDs, hashcode partitioning helps to reduce the search space within each TLD buckets. For \textit{medium queries} (100-200 domains), it is likely that more domains will have the same TLD and based on their hashvalue, they will likely span all the $2^{nd}$ level buckets within a TLD bucket. So in this case, TLD based $1^{st}$ level partitioning helps to reduce the search space. For \textit{large queries} (1000s of domains), it is very likely that the domains span all TLD buckets and span all the hash buckets within each TLD and hence the search space will not reduce.
+The idea of having two levels of partitioning is motivated by domain queries of varying size (number of domains in the query). For \textit{single query} (only one domain), hashcode based partitioning is sufficient to reduce the search space. For \textit{small queries} (tens of domains) with mixed TLDs, hashcode partitioning helps to reduce the search space within each TLD buckets. For \textit{medium queries} (100-200 domains), it is likely that more domains will have the same TLD and based on their hashvalue, they will likely span all the $2^{nd}$ level buckets within a TLD bucket. So in this case, TLD based $1^{st}$ level partitioning helps to reduce the search space. For \textit{large queries} (1000s of domains), it is very likely that the domains span all TLD buckets and span all the hash buckets within each TLD and hence the search space will not reduce.
 
 \subsubsection{Implementation Details}
 The total number of buckets for a day worth of data is determined experimentally. While it seems obvious to have a large number of buckets in order to reduce the individual bucket size as much possible, on the HDFS environment it is not advisable to create lots of small files because,
@@ -198,13 +198,13 @@ Experimentally, a total of $200$ buckets per day results in average  bucket size
 
 \begin{figure}[H] 
 \centering
-\includegraphics[width=0.8\linewidth]{./data/RESULTS/graphs/domain_vs_numbuckets.png}
-\caption {\textit{\#Domains queried Vs \#Buckets searched.}}
+\includegraphics[width=0.8\linewidth]{./data/RESULTS/graphs/domain_vs_numbuckets_per.png}
+\caption {\textit{No. Domains queried Vs No. Buckets searched.}}
 \label{doms}
 \end{figure}
 
 \noindent
-In all four types of queries, when the number of domains is lesser, the \#buckets searched is also lesser. But as the \#domains increase, the \#buckets searched hits the maximum number of buckets in the respective query category (for example, \texttt{.com/A} category has a total of 69 buckets and all the buckets are searched when more than 370 domains are queried) since the domains span all the $2^{nd}$ level buckets.
+In all four types of queries, when the number of domains is lesser, the number of buckets searched is also lesser. But as the number of domains increase, the number of buckets searched hits the maximum number of buckets in the respective query category (for example, \texttt{.com/A} category has a total of 69 buckets and all the buckets are searched when more than 370 domains are queried) since the domains span all the $2^{nd}$ level buckets.
 \\\\
 Setting the total number of buckets per day as 200, the log records for each day have been partitioned by running Map-Reduce jobs using PIG scripting. A custom PIG User Defined Function (UDF) \textit{TagRecord} is used to tag each record with the appropriate bucket name and the Pig Multistorage UDF from PiggyBank collection is used to store each record in the appropriate file on HDFS based on the tag id.
 
@@ -275,7 +275,7 @@ In order to find out the optimal ordering to maximize the compression, first, as
 
 \begin{figure}[H] 
 \centering
-\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/diskusage_by_ordering_1completeday.png}
+\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/diskusage_by_ordering_1completeday_newcol.png}
 \caption {\textit{Disk usage of the new data format by ordering records based on fields.}}
 \end{figure}
 
@@ -287,7 +287,7 @@ Since sorting records based on individual fields improves the compression, sorti
 \section {Experiments}
 We measure the efficiency of the techniques discussed above in terms of the speedup obtained in query time and the savings in resources both to store the data and to query the data. We use the current log data stored in gzip format as the baseline to compare the performance of the different techniques.
 \\\\
-\textbf{Input dataset:} In all the experiments, we query the log data for a list of domains and measure the query performance. To compose a list of domains, we looked at three popular domains sets: 1. \textit{Abusix}\cite{abusix} - an open-source project listing domains occurring in spam, 2. \textit{spam-advertised pharmacies}\cite{pharmaleaks} - domain set constructed from leaked database of spam-advertised pharmacies and 3. \textit{Spooky domains}\cite{spooky} - blacklist of domains used in spamming.
+\textbf{Input dataset:} In all the experiments, we query the log data for a list of domains and measure the query performance. To compose a list of domains, we looked at three popular domains sets: 1. \textit{Abusix}\cite{abusix} - an open-source project listing domains occurring in spam, 2. \textit{Spam-advertised pharmacies}\cite{pharmaleaks} - domain set constructed from leaked database of spam-advertised pharmacies and 3. \textit{Blacklisted Spam domains}\cite{spooky} - blacklist of domains used in spamming.
 From these domains, we sampled two domains sets: \textit{``.com domains''}: a set of 200 \texttt{.com} domains and \textit{``mixed TLD domains''}: a set of 200 domains covering a wide range of TLDs.
 \\\\
 \textbf{Cluster setup:} The Hadoop cluster that we store data and run experiments consists of 38 nodes and each node has 16GB of memory. The HDFS block size is 128MB. We run Hadoop version 2.0.0-cdh4.1.0 and Pig version 0.10.0-cdh4.1.0.
@@ -312,7 +312,7 @@ In order to assess the gain/loss caused by each of the porting techniques discus
 
 \begin{figure}[H] 
 \centering
-\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/diskusage_by_techniques_30day.png}
+\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/diskusage_by_techniques_30day_newcol.png}
 \caption {\textit{Comparison of the resulting disk usage of 30 day data in new format produced by various techniques.}}
 \end{figure}
 
@@ -322,20 +322,20 @@ Using bz2 compression\footnote{Pig supports default bz2 compression level.} impr
 \subsubsection{Query and Resource Efficiency}
 To compare the query performance over the various formats of the data, we queried the log data for \textit{``.com domain set''} (a list of 200 \texttt{.com} domains sampled) with query type filter \texttt{A}. We measured the time and resources taken to perform the query on each of the data format and compared with the query over the baseline raw data.
 
-\paragraph{bz2 compression}Though bz2 compression saves about 17\% of the disk space as discussed in the previous section, as Figure \ref{comafigure} shows, comparing to baseline, it takes 2x time on wall clock and 2.5x CPU time to perform the query. This is because uncompressing a bz2 file is CPU intensive and takes more time than uncompressing a gzip file. Comparing to the huge increase in CPU usage and time, the gain obtained in disk usage seems worthless since the goal is to reduce both the query time and resource usage.
+\paragraph{bz2 compression}Though bz2 compression saves about 17\% of the disk space as discussed in the previous section, as Figure \ref{comafigure} shows, comparing to baseline, it takes 2 times more wall clock time and 2.5 times more CPU time to perform the query. This is because uncompressing a bz2 file is CPU intensive and takes more time than uncompressing a gzip file. Comparing to the huge increase in CPU usage and time, the gain obtained in disk usage seems worthless since the goal is to reduce both the query time and resource usage.
 
-\paragraph{Partitioning} Organizing the raw data into multiple buckets reduces the search space for domain queries. As the graph (Figure \ref{comafigure}) shows, the \#input records is reduced down to 32\% because only the A\_COM buckets are searched. As the search space decreases, wall clock time, CPU Time and \#maptasks decrease as well.
+\paragraph{Partitioning} Organizing the raw data into multiple buckets reduces the search space for domain queries. As the graph (Figure \ref{comafigure}) shows, the number of input records is reduced down to 32\% because only the A\_COM buckets are searched. As the search space decreases, wall clock time, CPU Time and number of maptasks decrease as well.
 
 \begin{figure}[H] 
 \centering
-\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/30day_com_A_new.png}
+\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/30day_com_A_newcol.png}
 \caption {\textit{Performance of querying 30 day data for .com domains with query type A. For Wallclock and CPU, the average number of units spent per output record is enclosed in brackets.}}
 \label{comafigure}
 \end{figure}
 
-\paragraph{Reformatting/Pruning records} As shown in the previous section, this technique significantly reduces the log file size. As a result, though there is no significant savings in terms of the \#input records, the IO time decreases (reading less amount of data) and the wall clock time and CPU time (to decompress data) to perform the query improves significantly.
+\paragraph{Reformatting/Pruning records} As shown in the previous section, this technique significantly reduces the log file size. As a result, though there is no significant savings in terms of the number of input records, the IO time decreases (reading less amount of data) and the wall clock time and CPU time (to decompress data) to perform the query improves significantly.
 
-\paragraph{Partitioning with Reformatting/Pruning} Since the results of the partitioning technique and reformatting technique look promising, we applied both the techniques together (i.e., reformat/prune the data and then classify the resulting records into buckets) and ported the raw data to new format. Querying the domains for $A$ records in this reformatted and partitioned data results in significant savings both on wall clock time and the resources consumed. As the graph shows, this combined technique outperforms the individual techniques and gives 10x improvement in CPU time, 20x less \#maptasks and about 6x less time on wall clock.
+\paragraph{Partitioning with Reformatting/Pruning} Since the results of the partitioning technique and reformatting technique look promising, we applied both the techniques together (i.e., reformat/prune the data and then classify the resulting records into buckets) and ported the raw data to new format. Querying the domains for $A$ records in this reformatted and partitioned data results in significant savings both on wall clock time and the resources consumed. As the graph shows, this combined technique outperforms the individual techniques and gives 10 times improvement in CPU time, 20 times less number of maptasks and about 6 times less wall clock time.
 \\\\
 As this technique proves superior than the other techniques, for all further experiments, we use only this technique and we compare the query over the data ported using this technique with the query over the original raw data.
 \\\\
@@ -346,23 +346,23 @@ In this experiment, we queried \textit{``.com domain set''} with no constraint o
 
 \begin{figure}[H] 
 \centering
-\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/30day_com_all_new.png}
+\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/30day_com_all_newcol.png}
 \caption {\textit{Performance of querying 30 day data for .com domains with no constraint on query type.}}
 \end{figure}
 
 \noindent
-This query will search all the COM buckets i.e, A\_COM, AAAA\_COM, PTR\_COM, OTHR\_COM and hence the search space should be roughly the same as the distribution of COM records in the original data which is about ~44\%. But in the graph, \#input records is only 33\% of original and the reason for the 11\% difference is two fold - 1. Not all the $2^{nd}$ level buckets are searched within the $1^{st}$ level COM buckets. 2. Unessential records from the original data were dropped by the porting.
+This query will search all the COM buckets i.e, A\_COM, AAAA\_COM, PTR\_COM, OTHR\_COM and hence the search space should be roughly the same as the distribution of COM records in the original data which is about ~44\%. But in the graph, number of input records is only 33\% of original and the reason for the 11\% difference is two fold - 1. Not all the $2^{nd}$ level buckets are searched within the $1^{st}$ level COM buckets. 2. Unessential records from the original data were dropped by the porting.
 \\\\
-As the graph shows, the CPU time is reduced by approximately 10 times, \#maptasks is reduced about 15x and the query time over the new data on wall clock takes only about 11\% of the time to query the original data.
+As the graph shows, the CPU time is reduced by approximately 10 times, number of maptasks is reduced about 15 times and the query time over the new data on wall clock takes only about 11\% of the time to query the original data.
 
 \subsubsection{Mixed TLD Domains, query type A}
 The goal of this experiment is to query for a set of domains that span all the TLD buckets. We queried the new data for \textit{``mixed TLD domains''} (a list of 200 domains with a wide range of TLDs) with query type \texttt{A} and the results are as shown in Figure \ref{allafigure}.
 \\\\
-Since the domain set includes all TLDs (\texttt{com, net, org} and \texttt{othr}), the query should search the entire A record buckets i.e., A\_COM, A\_NET, A\_ORG, A\_OTHR. From the original query type distribution, it means that 67\% of the original data. In the graph, \#inputrecords is only about 45\% of the original data and the reason for 22\% difference, as detailed in the previous section, is because of pruning, $2^{nd}$ level hashcode based partitioning and A\_ARPA buckets are not searched (query domain set does not have \texttt{arpa} TLDs).  
+Since the domain set includes all TLDs (\texttt{com, net, org} and \texttt{othr}), the query should search the entire A record buckets i.e., A\_COM, A\_NET, A\_ORG, A\_OTHR. From the original query type distribution, it means that 67\% of the original data. In the graph, number of inputrecords is only about 45\% of the original data and the reason for 22\% difference, as detailed in the previous section, is because of pruning, $2^{nd}$ level hashcode based partitioning and A\_ARPA buckets are not searched (query domain set does not have \texttt{arpa} TLDs).  
 
 \begin{figure}[H] 
 \centering
-\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/30day_all_A_new.png}
+\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/30day_all_A_newcol.png}
 \caption {\textit{Performance of querying 30 day data for domains that span all TLDs with query type A.}}
 \label{allafigure}
 \end{figure}
@@ -375,14 +375,14 @@ In this experiment, we queried \textit{``mixed TLD domains''} without any constr
 
 \begin{figure}[H] 
 \centering
-\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/30day_all_all_new.png}
+\includegraphics[width=1\textwidth]{./data/RESULTS/graphs/30day_all_all_newcol.png}
 \caption {\textit{Performance of querying 30 day data for domains that span all TLDs with no constraint on query type.}}
 \end{figure}
 
 \noindent
 As the graph shows, the search space is still only about 58\% of the raw data though the search now spans all the buckets (except the \texttt{arpa} buckets since the query domain set does not have \texttt{arpa} TLDs). This exemplifies the usefulness of $2^{nd}$ level partitioning based on hashcode. This experiment demonstrates the near worst case behaviour of the query ending up searching all the buckets. Even in this case, the search over the new data takes relatively much less time and resources than the search over the original raw data.
 \\\\
-Thus the experiments prove the usefulness of \textit{partitioning the data after reformatting/pruning} in saving the time and resources for common queries that are executed on a day-to-day basis. It is possible that if an exhaustive list of domains are queried (without restricting the query type), then there may not be significant gains because all the buckets will be included in the search space as illustrated in Figure \ref{doms}. Nevertheless, it has been observed that people do not generally search for more than 100 domains and the approach works efficiently for lesser \#domains.
+Thus the experiments prove the usefulness of \textit{partitioning the data after reformatting/pruning} in saving the time and resources for common queries that are executed on a day-to-day basis. It is possible that if an exhaustive list of domains are queried (without restricting the query type), then there may not be significant gains because all the buckets will be included in the search space as illustrated in Figure \ref{doms}. Nevertheless, it has been observed that people do not generally search for more than 100 domains and the approach works efficiently for lesser number of domains.
 
 \section{FindPartition tool}
 Once the log data is distributed to different buckets based on day, querytype, TLD and the domain hash value, before launching a search query, it is necessary to find the files to search. FindPartition is a Python script that accepts parameters such as domain, date range, list of domains, query type and returns the list of HDFS files to be searched to filter the records matching the given constraints. FindPartition simply does the reverse of what the PIG UDF \textit{TagRecord} does for partitioning the original log data. For convenience, the tool also outputs a pig script that can be readily launched to filter the list of domains passed as input.
@@ -417,12 +417,15 @@ pdhakshi@ccied1:~/WorkSpace/script$ ./FindPartition.py -p 20120201-20120203
 \end{verbatim}
 
 \section{Future Work}
-Partitioning the log records based on TLD/QueryType and hashcode helps in reducing the search space. The search query for popular domains can be speeded up even further by creating separate partition to hold the records that correspond to the popular domains. As Osterweil et al.\cite{uspatent} point out in the distribution of Second Level Domains (SLD name resolution requests to name servers), among the total requests, about 2\% of the total requests are from top 10 SLDs and about 13\% of the total requests are from top 100 SLDs and hence it is feasible to create separate partition for the popular domains. But the challenge to create a separate partition lies in identifying the list of domains that users query often and handling any changes in the query pattern i.e., the popular domains may change over time.
+Partitioning the log records based on TLD/QueryType and hashcode helps in reducing the search space. Search for domains which people query often (\textit{frequent domain list}) can be speeded up even further by creating separate partition to hold the records that correspond to the frequent domains. But since the domains that people query over the log data are not popular domains (generally people query \textit{bad domains} or \textit{spam domains}) and as Osterweil \textit{et al.}\cite{uspatent} point out, the distribution of Second Level Domains (SLD name resolution requests to name servers) is heavy-tailed (the distribution is spread most among unpopular domains), it is likely that \textit{frequent domain list} will change often and the challenge is to adapt to the changes. So the gain achieved by creating a separate partition may not be worth the resources used. But it is an interesting problem to investigate.
 
 \section{Summary and Conclusion} 
-In this project, we investigated techniques to reorganize the raw DNS log data to decrease domain query time and to decrease the resources needed both to query the log data and to store the log data. Based on the experiments, \textit{bz2 compression} technique, though saves significant disk space, it takes order of magnitude more time and resources than the baseline data for querying domains, hence it is not useful. Both \textit{Partitioning} and \textit{Reformatting/Pruning records} techniques save significant resources and speed up the query significantly. Also, after reformatting the records, ordering them based on multiple fields saves significant disk space. Finally, sticking all the individual techniques together, we find that \textit{Partitioning with Reformatting/Pruning unessential records and sorting records} speeds up the domain query by 6x, consumes 8x less resources for querying and takes 9x less space on disk. 
+In this project, we investigated techniques to reorganize the raw DNS log data to decrease domain query time and to decrease the resources needed both to query the log data and to store the log data. Based on the experiments, \textit{bz2 compression} technique, though saves significant disk space, it takes order of magnitude more time and resources than the baseline data for querying domains, hence it is not useful. Both \textit{Partitioning} and \textit{Reformatting/Pruning records} techniques save significant resources and speed up the query significantly. Also, after reformatting the records, ordering them based on multiple fields saves significant disk space. Finally, sticking all the individual techniques together, we find that \textit{Partitioning with Reformatting/Pruning unessential records and sorting records} speeds up the domain query by 6 times, consumes 8 times less resources for querying and takes 9 times less space on disk. 
 \\\\
-We have successfully used this technique and ported the raw log data to new format and saved around 1.1TB of disk space per month of data.
+We have successfully used this technique and ported the raw log data to new format and saved around 1.1 TB of disk space per month of data.
+
+\section*{Acknowledgements}
+I sincerely thank Kirill Levchenko, Research Scientist, Department of Computer Science and Engineering, UCSD for giving me the opportunity to work on this project and his continued guidance throughout the project. I also thank Andreas Pitsillidis, PhD student, Department of Computer Science and Engineering, UCSD for setting up the resources needed for the project and his timely help on issues related to Hadoop cluster.
 
 \begin{thebibliography}{1}
 \bibitem{abusix} Abusix, the global reporting project: http://abusix.org/
@@ -433,11 +436,11 @@ We have successfully used this technique and ported the raw log data to new form
 
 \bibitem{siedata} Security Information Exchange: https://sie.isc.org/
 
-\bibitem{toptalker} Eric Osterweil , Danny McPherson , Steve DiBenedetto , Christos Papadopoulos , Dan Massey, Behavior of DNS' top talkers, a .com/.net view, Proceedings of the 13th international conference on Passive and Active Measurement, March 12-14, 2012, Vienna, Austria (Figure 4).
+\bibitem{toptalker} Eric Osterweil, Danny McPherson, Steve DiBenedetto, Christos Papadopoulos, Dan Massey, Behavior of DNS' top talkers, a .com/.net view, Proceedings of the 13th international conference on Passive and Active Measurement, March 12-14, 2012, Vienna, Austria (Figure 4).
 
 \bibitem{uspatent} http://patents.com/pdf-20130042299.html (Figure 5).
 
-\bibitem{peekingcloud} Moheeb Abu Rajab , Fabian Monrose , Niels Provos, Peeking Through the Cloud: Client Density Estimation via DNS Cache Probing, ACM Transactions on Internet Technology (TOIT), v.10 n.3, p.1-21, October 2010
+\bibitem{peekingcloud} Moheeb Abu Rajab, Fabian Monrose, Niels Provos, Peeking Through the Cloud: Client Density Estimation via DNS Cache Probing, ACM Transactions on Internet Technology (TOIT), v.10 n.3, p.1-21, October 2010.
 
 
 \end{thebibliography}
