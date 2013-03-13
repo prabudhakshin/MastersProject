@@ -34,6 +34,7 @@
 	\bf Prabu Dhakshinamurthy\\
 	\textit{pdhakshi@cs.ucsd.edu}\\
 	Masters Student\\
+	Department of Computer Science and Engineering\\
 	University of California San Diego
 }
 \date {}
@@ -238,7 +239,7 @@ For example, the raw log record is reformatted as,
 \end{verbatim}
 
 \subsubsection{Prune unessential records}
-Ultimately, in a DNS request, the user is interested in the answer section which gives the answer to the query (the IP address of hostname in an $A$ type query). But to get the answer, the resolver may have to make multiple requests to nameservers in an iterative name resolution process as described in section $2$. As a result, the log records for certain \\$<$src\_ip, domain, query\_type$>$ combination has more than one entry where each entry corresponds to one iteration of the resolution process (in Figure \ref{dns}, a separate log entry is made for each pair of request/response crossing the red line). Since the user is not interested in all these other records, they are coalesced into a single record as shown in the example below.
+Ultimately, in a DNS request, the user is interested in the answer section which gives the answer to the query (the IP address of hostname in an $A$ type query). But to get the answer, the resolver may have to make multiple requests to nameservers in an iterative name resolution process as described in section $2$. As a result, the log records for certain \\$<$src\_ip, domain, query\_type$>$ combination has more than one entry where each entry corresponds to one iteration of the resolution process (in Figure \ref{dns}, a separate log entry is made for each pair of request/response crossing the red line). Since the user is not interested in all these other records, the records that are part of same request can be coalesced into a single record.
 \\\\
 Before pruning, two records corresponding to a single address resolution process is shown below. In the context of Figure \ref{dns}, these log records correspond to request/response pairs $<$4,5$>$ and $<$6,7$>$ respectively. 
 \begin{verbatim}
@@ -254,19 +255,39 @@ Before pruning, two records corresponding to a single address resolution process
         //authoritative  {}
         //additional     {}  
 \end{verbatim}
-After pruning, the two records are coalesced into a single record as shown below.
+
+\noindent
+Let $R_{1}$ and $R_{2}$ be two records with fields
+$<ts_{i},\ src\_ip_{i}, dst\_ip_{i},\ domain_{i},\ qtype_{i},\ $ $answer_{i},\ authoritative_{i},\ additional_{i}>$, where subscript $i \in \left \{ 1,2 \right \}$ represents the associated record. Also, let $answer_{ijk},\ authoritative_{ijk},\ additional_{ijk}$ represent the $k^{th}$ field of $j^{th}$ entry in the respective set. Then two records $R_{1}$ and $R_{2}$ are considered part of same request if,
+\begin{equation}
+\begin{split}
+(src\_ip_{1} = src\_ip_{2})\wedge
+(domain_{1} = domain_{2})\wedge
+(query\_type_{1} = query\_type_{2})\wedge \\
+(ts_{1}-ts_{2}\le C)\wedge
+(answer_{1} = \emptyset)\wedge
+(\exists i,j\ authoritative_{1i5} = additional_{1j1})\wedge \\
+dst\_ip_{2} = additional_{1j5}.
+\end{split}
+\end{equation}
+
+where constant $C$ is maximum time (seconds) between two successive requests in the recursive resolution process and we set this to $3$.
+\noindent
+To remove the unessential records, first records are grouped based on the tuple $<$src\_ip, domain, query\_type$>$ and within each group, records are sorted in the non-decreasing order of the timestamp. Then, we use a simplified version\footnotemark \ of equation (1) to remove unessential records. One output record is generated for each group of input records by picking the non-empty answer section (if available) from the input records in the group. Two records belonging to the same request (shown above) are coalesced into a single record as below.
 \begin{verbatim}
-1328140598 205.188.118.88 199.239.136.18 www.nytimes.com. 120 {(199.239.136.200)}
+1328140598 205.188.118.88 199.239.136.18 www.nytimes.com. 120 
+                                          {(199.239.136.200)}
 \end{verbatim}
 
-\subsubsection{Implementation Details}
-To remove the unessential records, first records are grouped based on the tuple \\$<$src\_ip, domain, query\_type$>$ and within each group, records are sorted in the non-decreasing order of the timestamp. Then, to remove the unessential records, few heuristics are used.
-\begin{itemize}
-	\resitem {Two records are considered to belong to the same resolution request if both have the same timestamp. Otherwise, if the records are 3 seconds apart, it is concluded that they belong to two different requests.}
-	\resitem {If the records are within 3 seconds apart and if the answer section is present in the $1^{st}$ record, then the $2^{nd}$ record belongs to a different request. Otherwise (answer not present in $1^{st}$ record), the records are considered part of the same request.}
-\end{itemize}
-\noindent
-One output record is generated for each group of input records by picking the non-empty answer section (if available) from the input records in the group.
+%\subsubsection{Implementation Details}
+%To remove the unessential records, first records are grouped based on the tuple \\$<$src\_ip, domain, query\_type$>$ and within each group, records are sorted in the non-decreasing order of the timestamp. Then, we use a simplified version\footnotemark \ of equation (1) to remove unessential records.
+%\begin{itemize}
+%	\resitem {Two records are considered to belong to the same resolution request if both have the same timestamp. Otherwise, if the records are 3 seconds apart, it is concluded that they belong to two different requests.}
+%	\item {If the records are within 3 seconds apart and if the answer section is present in the $1^{st}$ record, then the $2^{nd}$ record belongs to a different request. Otherwise (answer not present in $1^{st}$ record), the records are considered part of the same request.}
+%\end{itemize}
+\footnotetext {In our implementation, we did not consider the constraint $(authoritative_{1i5} = additional_{1j1})\ \wedge\ (dst\_ip_{2} = additional_{1j5})$}
+
+%One output record is generated for each group of input records by picking the non-empty answer section (if available) from the input records in the group.
 
 \subsubsection{Sort records to facilitate better compression}
 Since the log data is huge, the data is compressed with gzip and stored on disk. By sorting records and grouping similar records together, it may be possible to increase the gzip compression ratio. In the raw log data, there is no specific ordering and hence the compression ratio is not optimal. Since the new log format is more structured and there is no strict requirement on the order of records within each file (all the records within a file has to be processed anyway) we have the freedom to change the order and improve the compression ratio.
@@ -418,6 +439,8 @@ pdhakshi@ccied1:~/WorkSpace/script$ ./FindPartition.py -p 20120201-20120203
 
 \section{Future Work}
 Partitioning the log records based on TLD/QueryType and hashcode helps in reducing the search space. Search for domains which people query often (\textit{frequent domain list}) can be speeded up even further by creating separate partition to hold the records that correspond to the frequent domains. But since the domains that people query over the log data are not popular domains (generally people query \textit{bad domains} or \textit{spam domains}) and as Osterweil \textit{et al.}\cite{uspatent} point out, the distribution of Second Level Domains (SLD name resolution requests to name servers) is heavy-tailed (the distribution is spread most among unpopular domains), it is likely that \textit{frequent domain list} will change often and the challenge is to adapt to the changes. So the gain achieved by creating a separate partition may not be worth the resources used. But it is an interesting problem to investigate.
+\\\\
+\emph{Hive} is a data warehousing infrastructure based on Hadoop. It stores data in a structured format on top of HDFS and offers \textit{HiveQL}, an SQL like query language to query data based on one or more fields by running map-reduce jobs. Hive also supports partitioning tables based on multiple fields to facilitate faster querying. We already have the log data cleanly formatted with multiple fields and partitioned based on query type and TLD. As a future work, these partitions can be loaded into Hive tables and instead of using Pig, HiveQL can be used to query the DNS log data. 
 
 \section{Summary and Conclusion} 
 In this project, we investigated techniques to reorganize the raw DNS log data to decrease domain query time and to decrease the resources needed both to query the log data and to store the log data. Based on the experiments, \textit{bz2 compression} technique, though saves significant disk space, it takes order of magnitude more time and resources than the baseline data for querying domains, hence it is not useful. Both \textit{Partitioning} and \textit{Reformatting/Pruning records} techniques save significant resources and speed up the query significantly. Also, after reformatting the records, ordering them based on multiple fields saves significant disk space. Finally, sticking all the individual techniques together, we find that \textit{Partitioning with Reformatting/Pruning unessential records and sorting records} speeds up the domain query by 6 times, consumes 8 times less resources for querying and takes 9 times less space on disk. 
